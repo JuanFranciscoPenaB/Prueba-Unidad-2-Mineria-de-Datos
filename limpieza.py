@@ -14,8 +14,23 @@ st.title("📊 Dashboard de Datos de Salud de Pacientes")
 # =========================
 # CARGA DE DATOS
 # =========================
-# Cambia el nombre del archivo si es necesario
 df = pd.read_csv("healthcare_dataset.csv", sep=",")
+
+# =========================
+# RENOMBRADO DE COLUMNAS (inglés -> español)
+# =========================
+df = df.rename(columns={
+    "Patient_ID": "ID_Paciente",
+    "Age": "Edad",
+    "Gender": "Genero",
+    "Blood_Pressure": "Presion_Arterial",
+    "Heart_Rate": "Ritmo_Cardiaco",
+    "Cholesterol_Level": "Colesterol",
+    "BMI": "IMC",
+    "Diagnosis": "Diagnostico",
+    "Treatment_Plan": "Plan_Tratamiento",
+    "Follow_Up_Date": "Fecha_Seguimiento",
+})
 
 # =========================
 # MENÚ LATERAL (POWER BI STYLE)
@@ -82,13 +97,13 @@ elif menu == "🧹 Limpieza de Datos":
 
     df_clean = df.copy()
 
-    # Treatment_Plan tiene nulos -> se rellenan con "Sin Plan Asignado"
-    df_clean["Treatment_Plan"] = df_clean["Treatment_Plan"].fillna("Sin Plan Asignado")
+    # Plan_Tratamiento tiene nulos -> se rellenan con "Sin Plan Asignado"
+    df_clean["Plan_Tratamiento"] = df_clean["Plan_Tratamiento"].fillna("Sin Plan Asignado")
 
     # Eliminar duplicados si existieran
     df_clean = df_clean.drop_duplicates()
 
-    st.subheader("Después de limpiar (Treatment_Plan nulo → 'Sin Plan Asignado')")
+    st.subheader("Después de limpiar (Plan_Tratamiento nulo → 'Sin Plan Asignado')")
     st.dataframe(df_clean)
 
     st.subheader("Verificación de nulos post-limpieza")
@@ -102,34 +117,34 @@ elif menu == "🔄 Transformación de Datos":
     st.header("Transformación de Datos")
 
     df_t = df.copy()
-    df_t["Treatment_Plan"] = df_t["Treatment_Plan"].fillna("Sin Plan Asignado")
+    df_t["Plan_Tratamiento"] = df_t["Plan_Tratamiento"].fillna("Sin Plan Asignado")
 
     # ------------------------
-    # Normalización de BMI
+    # Normalización de IMC
     # ------------------------
-    df_t["BMI_norm"] = (
-        (df_t["BMI"] - df_t["BMI"].min()) /
-        (df_t["BMI"].max() - df_t["BMI"].min())
+    df_t["IMC_norm"] = (
+        (df_t["IMC"] - df_t["IMC"].min()) /
+        (df_t["IMC"].max() - df_t["IMC"].min())
     )
 
     # ------------------------
-    # Z-score de Cholesterol_Level
+    # Z-score de Colesterol
     # ------------------------
     df_t["Colesterol_z"] = (
-        (df_t["Cholesterol_Level"] - df_t["Cholesterol_Level"].mean()) /
-        df_t["Cholesterol_Level"].std()
+        (df_t["Colesterol"] - df_t["Colesterol"].mean()) /
+        df_t["Colesterol"].std()
     )
 
     # ------------------------
-    # Log de Blood_Pressure
+    # Log de Presion_Arterial
     # ------------------------
-    df_t["Presion_log"] = np.log1p(df_t["Blood_Pressure"])
+    df_t["Presion_log"] = np.log1p(df_t["Presion_Arterial"])
 
     # ------------------------
-    # Binning de BMI (categorías clínicas estándar)
+    # Binning de IMC (categorías clínicas estándar)
     # ------------------------
-    df_t["Categoria_BMI"] = pd.cut(
-        df_t["BMI"],
+    df_t["Categoria_IMC"] = pd.cut(
+        df_t["IMC"],
         bins=[0, 18.5, 25, 30, 100],
         labels=["Bajo peso", "Normal", "Sobrepeso", "Obesidad"]
     )
@@ -138,7 +153,7 @@ elif menu == "🔄 Transformación de Datos":
     # Binning de edad
     # ------------------------
     df_t["Categoria_Edad"] = pd.cut(
-        df_t["Age"],
+        df_t["Edad"],
         bins=[0, 6, 12, 20, 25, 60, 200],
         labels=["Infancia", "Niñez", "Adolescencia", "Juventud", "Adultez", "Ancianidad"],
         right=False
@@ -157,50 +172,50 @@ elif menu == "📊 Visualización":
     st.header("Visualización Interactiva de Datos")
 
     df_v = df.copy()
-    df_v["Treatment_Plan"] = df_v["Treatment_Plan"].fillna("Sin Plan Asignado")
-    df_v["Categoria_BMI"] = pd.cut(
-        df_v["BMI"], bins=[0, 18.5, 25, 30, 100],
+    df_v["Plan_Tratamiento"] = df_v["Plan_Tratamiento"].fillna("Sin Plan Asignado")
+    df_v["Categoria_IMC"] = pd.cut(
+        df_v["IMC"], bins=[0, 18.5, 25, 30, 100],
         labels=["Bajo peso", "Normal", "Sobrepeso", "Obesidad"]
     )
 
     # -------- FILTROS DINÁMICOS --------
     st.sidebar.subheader("🎛️ Filtros")
     generos = st.sidebar.multiselect(
-        "Género", options=df_v["Gender"].unique(), default=list(df_v["Gender"].unique())
+        "Género", options=df_v["Genero"].unique(), default=list(df_v["Genero"].unique())
     )
     diagnosticos = st.sidebar.multiselect(
-        "Diagnóstico", options=df_v["Diagnosis"].unique(), default=list(df_v["Diagnosis"].unique())
+        "Diagnóstico", options=df_v["Diagnostico"].unique(), default=list(df_v["Diagnostico"].unique())
     )
     edad_min, edad_max = st.sidebar.slider(
-        "Rango de edad", int(df_v["Age"].min()), int(df_v["Age"].max()),
-        (int(df_v["Age"].min()), int(df_v["Age"].max()))
+        "Rango de edad", int(df_v["Edad"].min()), int(df_v["Edad"].max()),
+        (int(df_v["Edad"].min()), int(df_v["Edad"].max()))
     )
 
     df_f = df_v[
-        (df_v["Gender"].isin(generos)) &
-        (df_v["Diagnosis"].isin(diagnosticos)) &
-        (df_v["Age"].between(edad_min, edad_max))
+        (df_v["Genero"].isin(generos)) &
+        (df_v["Diagnostico"].isin(diagnosticos)) &
+        (df_v["Edad"].between(edad_min, edad_max))
     ]
 
     # -------- KPIs --------
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Pacientes filtrados", len(df_f))
-    k2.metric("Edad promedio", f"{df_f['Age'].mean():.1f}" if len(df_f) else "-")
-    k3.metric("Colesterol promedio", f"{df_f['Cholesterol_Level'].mean():.0f}" if len(df_f) else "-")
-    k4.metric("BMI promedio", f"{df_f['BMI'].mean():.1f}" if len(df_f) else "-")
+    k2.metric("Edad promedio", f"{df_f['Edad'].mean():.1f}" if len(df_f) else "-")
+    k3.metric("Colesterol promedio", f"{df_f['Colesterol'].mean():.0f}" if len(df_f) else "-")
+    k4.metric("IMC promedio", f"{df_f['IMC'].mean():.1f}" if len(df_f) else "-")
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.subheader("Distribución de edad")
-        fig = px.histogram(df_f, x="Age", nbins=20, color="Gender",
+        fig = px.histogram(df_f, x="Edad", nbins=20, color="Genero",
                             title="Distribución de edad por género")
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
         st.subheader("Pacientes por diagnóstico")
-        fig = px.bar(df_f["Diagnosis"].value_counts().reset_index(),
-                     x="Diagnosis", y="count", color="Diagnosis",
+        fig = px.bar(df_f["Diagnostico"].value_counts().reset_index(),
+                     x="Diagnostico", y="count", color="Diagnostico",
                      title="Cantidad de pacientes por diagnóstico")
         st.plotly_chart(fig, use_container_width=True)
 
@@ -208,33 +223,33 @@ elif menu == "📊 Visualización":
 
     with col3:
         st.subheader("Colesterol vs Presión Arterial")
-        fig = px.scatter(df_f, x="Blood_Pressure", y="Cholesterol_Level",
-                          color="Diagnosis", size="BMI", hover_data=["Age", "Gender"],
+        fig = px.scatter(df_f, x="Presion_Arterial", y="Colesterol",
+                          color="Diagnostico", size="IMC", hover_data=["Edad", "Genero"],
                           title="Relación Presión Arterial - Colesterol")
         st.plotly_chart(fig, use_container_width=True)
 
     with col4:
-        st.subheader("Outliers de BMI")
-        fig = px.box(df_f, x="Diagnosis", y="BMI", color="Diagnosis",
-                     title="Distribución de BMI por diagnóstico")
+        st.subheader("Outliers de IMC")
+        fig = px.box(df_f, x="Diagnostico", y="IMC", color="Diagnostico",
+                     title="Distribución de IMC por diagnóstico")
         st.plotly_chart(fig, use_container_width=True)
 
     col5, col6 = st.columns(2)
 
     with col5:
         st.subheader("Planes de tratamiento")
-        fig = px.pie(df_f, names="Treatment_Plan", title="Distribución de planes de tratamiento")
+        fig = px.pie(df_f, names="Plan_Tratamiento", title="Distribución de planes de tratamiento")
         st.plotly_chart(fig, use_container_width=True)
 
     with col6:
-        st.subheader("Categoría de BMI por género")
-        fig = px.bar(df_f.groupby(["Categoria_BMI", "Gender"], observed=True).size().reset_index(name="count"),
-                     x="Categoria_BMI", y="count", color="Gender", barmode="group",
-                     title="Categoría de BMI segmentada por género")
+        st.subheader("Categoría de IMC por género")
+        fig = px.bar(df_f.groupby(["Categoria_IMC", "Genero"], observed=True).size().reset_index(name="count"),
+                     x="Categoria_IMC", y="count", color="Genero", barmode="group",
+                     title="Categoría de IMC segmentada por género")
         st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Mapa de calor de correlaciones")
-    num_cols = ["Age", "Blood_Pressure", "Heart_Rate", "Cholesterol_Level", "BMI"]
+    num_cols = ["Edad", "Presion_Arterial", "Ritmo_Cardiaco", "Colesterol", "IMC"]
     corr = df_f[num_cols].corr()
     fig = px.imshow(corr, text_auto=True, aspect="auto", color_continuous_scale="RdBu_r",
                      title="Correlación entre variables numéricas")
@@ -248,18 +263,18 @@ elif menu == "📦 Dataset Final":
     st.header("Dataset Final Procesado")
 
     df_final = df.copy()
-    df_final["Treatment_Plan"] = df_final["Treatment_Plan"].fillna("Sin Plan Asignado")
+    df_final["Plan_Tratamiento"] = df_final["Plan_Tratamiento"].fillna("Sin Plan Asignado")
 
-    df_final["BMI_norm"] = (
-        (df_final["BMI"] - df_final["BMI"].min()) /
-        (df_final["BMI"].max() - df_final["BMI"].min())
+    df_final["IMC_norm"] = (
+        (df_final["IMC"] - df_final["IMC"].min()) /
+        (df_final["IMC"].max() - df_final["IMC"].min())
     )
     df_final["Colesterol_z"] = (
-        (df_final["Cholesterol_Level"] - df_final["Cholesterol_Level"].mean()) /
-        df_final["Cholesterol_Level"].std()
+        (df_final["Colesterol"] - df_final["Colesterol"].mean()) /
+        df_final["Colesterol"].std()
     )
-    df_final["Categoria_BMI"] = pd.cut(
-        df_final["BMI"], bins=[0, 18.5, 25, 30, 100],
+    df_final["Categoria_IMC"] = pd.cut(
+        df_final["IMC"], bins=[0, 18.5, 25, 30, 100],
         labels=["Bajo peso", "Normal", "Sobrepeso", "Obesidad"]
     )
 
@@ -278,13 +293,13 @@ elif menu == "⬇️ Exportar Datos":
     st.header("Descarga de Datos Procesados")
 
     df_exp = df.copy()
-    df_exp["Treatment_Plan"] = df_exp["Treatment_Plan"].fillna("Sin Plan Asignado")
-    df_exp["BMI_norm"] = (
-        (df_exp["BMI"] - df_exp["BMI"].min()) /
-        (df_exp["BMI"].max() - df_exp["BMI"].min())
+    df_exp["Plan_Tratamiento"] = df_exp["Plan_Tratamiento"].fillna("Sin Plan Asignado")
+    df_exp["IMC_norm"] = (
+        (df_exp["IMC"] - df_exp["IMC"].min()) /
+        (df_exp["IMC"].max() - df_exp["IMC"].min())
     )
-    df_exp["Categoria_BMI"] = pd.cut(
-        df_exp["BMI"], bins=[0, 18.5, 25, 30, 100],
+    df_exp["Categoria_IMC"] = pd.cut(
+        df_exp["IMC"], bins=[0, 18.5, 25, 30, 100],
         labels=["Bajo peso", "Normal", "Sobrepeso", "Obesidad"]
     )
 
